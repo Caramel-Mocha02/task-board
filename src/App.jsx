@@ -1,17 +1,37 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
-let nextId = 1
+const STORAGE_KEY = 'task-board.tasks'
+
+function loadTasks() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
 
 export default function App() {
-  const [tasks, setTasks] = useState([])
+  const [tasks, setTasks] = useState(loadTasks)
   const [text, setText] = useState('')
+
+  // 読み込んだタスクの最大 ID から採番を再開し、リロード後の ID 衝突を防ぐ
+  const nextIdRef = useRef(
+    tasks.reduce((max, task) => Math.max(max, task.id), 0) + 1,
+  )
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
+  }, [tasks])
 
   const addTask = (e) => {
     e.preventDefault()
     const title = text.trim()
     if (!title) return
-    setTasks((prev) => [...prev, { id: nextId++, title, done: false }])
+    setTasks((prev) => [...prev, { id: nextIdRef.current++, title, done: false }])
     setText('')
   }
 
